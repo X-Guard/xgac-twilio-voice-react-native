@@ -2,6 +2,9 @@ package com.twiliovoicereactnative;
 
 import androidx.annotation.NonNull;
 
+import android.os.Handler;
+import android.os.Looper;
+
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -26,6 +29,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 
 @ReactModule(name = TwilioVoiceReactNativeModule.NAME)
@@ -53,6 +57,8 @@ public class TwilioVoiceReactNativeModule extends ReactContextBaseJavaModule {
   public static final String NAME = "TwilioVoiceReactNative";
 
   private static final SDKLog logger = new SDKLog(TwilioVoiceReactNativeModule.class);
+
+  private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
   private final ModuleProxy moduleProxy;
 
@@ -457,6 +463,79 @@ public class TwilioVoiceReactNativeModule extends ReactContextBaseJavaModule {
   @ReactMethod
   public void voice_setIncomingCallContactHandleTemplate(String template, Promise promise) {
     this.moduleProxy.voice.setIncomingCallContactHandleTemplate(template, new PromiseAdapter(promise));
+  }
+
+  /**
+   * Start (if needed) and activate call audio routing. Safe if Ringing was skipped.
+   * Resolves raw (not the SDK promise envelope): app code calls this on NativeModules directly.
+   */
+  @ReactMethod
+  public void voice_activateAudioSwitch(Promise promise) {
+    VoiceApplicationProxy.getAudioSwitchManager().activate();
+    promise.resolve(null);
+  }
+
+  /**
+   * Stop AudioSwitch listening (Bluetooth SCO scan) so media (A2DP) can resume.
+   * Resolves raw (not the SDK promise envelope): app code calls this on NativeModules directly.
+   */
+  @ReactMethod
+  public void voice_stopAudioSwitch(Promise promise) {
+    VoiceApplicationProxy.getAudioSwitchManager().stop();
+    promise.resolve(null);
+  }
+
+  /**
+   * Android counterpart of iOS CallKit canSpeak + status line.
+   * canSpeak is unused (no CallKit mute gate). statusName retitles the ongoing-call notification.
+   * Resolves raw (not the SDK promise envelope): app code calls this on NativeModules directly.
+   */
+  @ReactMethod
+  public void voice_setCallKitCanSpeak(
+    String uuid,
+    boolean canSpeak,
+    String statusName,
+    Promise promise
+  ) {
+    mainHandler.post(() -> {
+      logger.debug(".voice_setCallKitCanSpeak() canSpeak=" + canSpeak);
+
+      if (uuid == null || uuid.isEmpty()) {
+        promise.reject("ERR_VOICE", "Call uuid is required");
+        return;
+      }
+
+      final UUID callUuid;
+      try {
+        callUuid = UUID.fromString(uuid);
+      } catch (IllegalArgumentException e) {
+        promise.reject("ERR_VOICE", "Invalid call uuid", e);
+        return;
+      }
+
+      final CallRecordDatabase.CallRecord callRecord = VoiceApplicationProxy
+        .getCallRecordDatabase()
+        .get(new CallRecordDatabase.CallRecord(callUuid));
+      if (callRecord == null) {
+        promise.resolve(null);
+        return;
+      }
+
+      if (statusName != null && !statusName.isEmpty()) {
+        callRecord.setNotificationDisplayName(statusName);
+        if (
+          callRecord.getDirection() == CallRecordDatabase.CallRecord.Direction.OUTGOING
+            && callRecord.getNotificationId() != CallRecordDatabase.CallRecord.INVALID_NOTIFICATION_ID
+        ) {
+          final VoiceService.VoiceServiceAPI voiceServiceApi = VoiceApplicationProxy.getVoiceServiceApi();
+          if (voiceServiceApi != null) {
+            voiceServiceApi.raiseOutgoingCallNotification(callRecord);
+          }
+        }
+      }
+
+      promise.resolve(null);
+    });
   }
 
   @ReactMethod

@@ -175,6 +175,7 @@ export interface Call {
     addListener(ringingEvent: Call.Event.Ringing, listener: Call.Listener.Ringing): this;
     addListener(qualityWarningsChangedEvent: Call.Event.QualityWarningsChanged, listener: Call.Listener.QualityWarningsChanged): this;
     addListener(messageReceivedEvent: Call.Event.MessageReceived, listener: Call.Listener.MessageReceived): this;
+    addListener(mutedEvent: Call.Event.Muted, listener: Call.Listener.Muted): this;
     addListener(callEvent: Call.Event, listener: Call.Listener.Generic): this;
     // @internal (undocumented)
     emit(connectedEvent: Call.Event.Connected): boolean;
@@ -192,6 +193,8 @@ export interface Call {
     emit(qualityWarningsChangedEvent: Call.Event.QualityWarningsChanged, currentQualityWarnings: Call.QualityWarning[], previousQualityWarnings: Call.QualityWarning[]): boolean;
     // @internal (undocumented)
     emit(messageReceivedEvent: Call.Event.MessageReceived, incomingCallMessage: IncomingCallMessage): boolean;
+    // @internal (undocumented)
+    emit(mutedEvent: Call.Event.Muted, isMuted: boolean): boolean;
     on(connectedEvent: Call.Event.Connected, listener: Call.Listener.Connected): this;
     on(connectFailureEvent: Call.Event.ConnectFailure, listener: Call.Listener.ConnectFailure): this;
     on(reconnectingEvent: Call.Event.Reconnecting, listener: Call.Listener.Reconnecting): this;
@@ -200,6 +203,7 @@ export interface Call {
     on(ringingEvent: Call.Event.Ringing, listener: Call.Listener.Ringing): this;
     on(qualityWarningsChangedEvent: Call.Event.QualityWarningsChanged, listener: Call.Listener.QualityWarningsChanged): this;
     on(callMessageEvent: Call.Event.MessageReceived, listener: Call.Listener.MessageReceived): this;
+    on(mutedEvent: Call.Event.Muted, listener: Call.Listener.Muted): this;
     on(callEvent: Call.Event, listener: Call.Listener.Generic): this;
 }
 
@@ -217,6 +221,7 @@ export class Call extends EventEmitter {
     getState(): Call.State;
     getStats(): Promise<RTCStats.StatsReport>;
     getTo(): string | undefined;
+    getUuid(): Uuid;
     hold(hold: boolean): Promise<boolean>;
     isMuted(): boolean | undefined;
     isOnHold(): boolean | undefined;
@@ -233,6 +238,7 @@ export namespace Call {
         'ConnectFailure' = "connectFailure",
         'Disconnected' = "disconnected",
         'MessageReceived' = "messageReceived",
+        'Muted' = "muted",
         'QualityWarningsChanged' = "qualityWarningsChanged",
         'Reconnected' = "reconnected",
         'Reconnecting' = "reconnecting",
@@ -253,6 +259,7 @@ export namespace Call {
         export type Disconnected = (error?: TwilioError) => void;
         export type Generic = (...args: any[]) => void;
         export type MessageReceived = (incomingCallMessage: IncomingCallMessage) => void;
+        export type Muted = (isMuted: boolean) => void;
         export type QualityWarningsChanged = (currentQualityWarnings: Call.QualityWarning[], previousQualityWarnings: Call.QualityWarning[]) => void;
         export type Reconnected = () => void;
         export type Reconnecting = (error: TwilioError) => void;

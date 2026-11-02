@@ -116,6 +116,9 @@ CallEventReconnecting=callEventReconnecting
 CallEventReconnected=callEventReconnected
 CallEventRinging=callEventRinging
 
+// Mute (CallKit CXSetMutedCallAction — patched; stock SDK has no mute event)
+CallEventMutedChanged=callEventMutedChanged
+
 // Quality warnings
 CallEventQualityWarningsChanged=callEventQualityWarningsChanged
 CallEventCurrentWarnings=callEventCurrentWarnings

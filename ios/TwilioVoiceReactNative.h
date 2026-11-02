@@ -28,6 +28,11 @@ FOUNDATION_EXPORT NSString * const kTwilioVoiceReactNativeEventKeyCancelledCallI
 @property (nonatomic, readonly, strong) NSMutableDictionary<NSString *, NSString *> *callConnectMap;
 @property (nonatomic, readonly, strong) NSMutableDictionary<NSString *, TVOCallInvite *> *callInviteMap;
 @property (nonatomic, readonly, strong) NSMutableDictionary<NSString *, TVOCancelledCallInvite *> *cancelledCallInviteMap;
+/** Per-call whether the user CallKit mute button may unmute. Missing key defaults to YES. */
+@property (nonatomic, readonly, strong) NSMutableDictionary<NSString *, NSNumber *> *callCanSpeakMap;
+/** Pending JS `call_mute` completions keyed by CXSetMutedCallAction UUID. Presence also marks
+    the action as JS-originated, so it skips the canSpeak gate. */
+@property (nonatomic, readonly, strong) NSMutableDictionary<NSString *, id> *jsMuteCompletions;
 
 @property (nonatomic, strong) CXProvider *callKitProvider;
 @property (nonatomic, strong) CXCallController *callKitCallController;
@@ -98,6 +103,11 @@ FOUNDATION_EXPORT NSString * const kTwilioVoiceReactNativeEventKeyCancelledCallI
 - (void)answerCallInvite:(NSUUID *)uuid
               completion:(void(^)(BOOL success, NSError *error))completionHandler;
 - (void)updateCall:(NSString *)uuid callerHandle:(NSString *)handle;
+- (void)requestCallKitMute:(BOOL)muted
+                   forUuid:(NSString *)uuid
+                completion:(void(^)(NSError *error))completion;
+- (void)startRouteChangeObserver;
+- (void)stopRouteChangeObserver;
 
 /* Utility */
 - (NSDictionary *)callInfo:(TVOCall *)call;

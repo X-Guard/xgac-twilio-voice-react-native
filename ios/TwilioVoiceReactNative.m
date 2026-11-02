@@ -25,6 +25,7 @@ NSString * const kTwilioVoiceReactNativeEventKeyCancelledCallInvite = @"cancelle
 NSString * const kTwilioVoiceAudioDeviceUid = @"uid";
 
 static TVODefaultAudioDevice *sTwilioAudioDevice;
+static __weak TwilioVoiceReactNative *sRouteObserverModule;
 
 @import TwilioVoice;
 
@@ -81,6 +82,7 @@ static TVODefaultAudioDevice *sTwilioAudioDevice;
  */
 @property(nonatomic, strong) NSMutableDictionary<NSString *, NSString *> *audioDeviceUuids;
 @property(nonatomic, strong) NSDictionary *selectedAudioDevice;
+@property(nonatomic, copy) dispatch_block_t routeRefreshCoalesceBlock;
 @property(nonatomic, assign) BOOL registrationInProgress;
 
 @end
@@ -95,6 +97,8 @@ static TVODefaultAudioDevice *sTwilioAudioDevice;
         _callConnectMap = [NSMutableDictionary dictionary];
         _callInviteMap = [NSMutableDictionary dictionary];
         _cancelledCallInviteMap = [NSMutableDictionary dictionary];
+        _callCanSpeakMap = [NSMutableDictionary dictionary];
+        _jsMuteCompletions = [NSMutableDictionary dictionary];
         _audioDevices = [NSMutableDictionary dictionary];
         _audioDeviceUuids = [NSMutableDictionary dictionary];
         _iceServersMap = [NSMutableDictionary dictionary];
@@ -120,8 +124,16 @@ static TVODefaultAudioDevice *sTwilioAudioDevice;
             setenv("com.twilio.voice.env.sdk.expo_version", [(NSString *)expoVersion UTF8String], 1);
         }
 
-        sTwilioAudioDevice = [TVODefaultAudioDevice audioDevice];
-        TwilioVoiceSDK.audioDevice = sTwilioAudioDevice;
+        // Singleton: RN may re-init this module while Twilio media stack is still
+        // active (incoming push / bridge reload). Re-assigning audioDevice then throws
+        // TVOAudioDeviceMustBeSetBeforeMediaStackSetup (twilio-voice-react-native#413).
+        if (!sTwilioAudioDevice) {
+            sTwilioAudioDevice = [TVODefaultAudioDevice audioDevice];
+            // Keep disabled until CallKit activates the session (didActivateAudioSession).
+            // Default enabled=YES can seize AVAudioSession on init and interrupt A2DP.
+            sTwilioAudioDevice.enabled = NO;
+            TwilioVoiceSDK.audioDevice = sTwilioAudioDevice;
+        }
 
         TwilioVoiceSDK.logLevel = TVOLogLevelTrace;
 
@@ -142,11 +154,6 @@ static TVODefaultAudioDevice *sTwilioAudioDevice;
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(handlePushRegistryNotification:)
                                                  name:kTwilioVoicePushRegistryNotification
-                                               object:nil];
-
-    [[NSNotificationCenter defaultCenter] addObserver:self
-                                             selector:@selector(handleRouteChange:)
-                                                 name:AVAudioSessionRouteChangeNotification
                                                object:nil];
 }
 
@@ -172,7 +179,51 @@ static TVODefaultAudioDevice *sTwilioAudioDevice;
     return sTwilioAudioDevice;
 }
 
-- (void)handleRouteChange:(NSNotification *)notification {
+- (void)startRouteChangeObserver {
+    if (sRouteObserverModule != nil && sRouteObserverModule != self) {
+        [sRouteObserverModule stopRouteChangeObserver];
+    }
+
+    if (sRouteObserverModule != self) {
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(handleRouteChange:)
+                                                 name:AVAudioSessionRouteChangeNotification
+                                               object:nil];
+        sRouteObserverModule = self;
+    }
+
+    // CallKit posts the activation route change before this observer exists, so
+    // handleRouteChange: misses it. The session is already active here — read the
+    // route now or selectedAudioDevice stays nil for the whole call.
+    [self refreshAudioDevicesAndEmitVoiceEvent];
+}
+
+- (void)stopRouteChangeObserver {
+    if (sRouteObserverModule != self) {
+        return;
+    }
+
+    [self cancelRouteRefreshCoalesce];
+
+    [[NSNotificationCenter defaultCenter] removeObserver:self
+                                                    name:AVAudioSessionRouteChangeNotification
+                                                  object:nil];
+    sRouteObserverModule = nil;
+}
+
+- (void)cancelRouteRefreshCoalesce {
+    if (self.routeRefreshCoalesceBlock) {
+        dispatch_block_cancel(self.routeRefreshCoalesceBlock);
+        self.routeRefreshCoalesceBlock = nil;
+    }
+}
+
+// Main queue only. Querying AVAudioSession (currentRoute / availableInputs) can
+// synchronously block on audiosessiond XPC for multiple seconds (iOS 26+), causing App
+// Hang reports — the notification path gates and coalesces before calling this. The
+// activation seed in startRouteChangeObserver calls it unconditionally, because
+// skipping it leaves selectedAudioDevice nil for the whole call.
+- (void)refreshAudioDevicesAndEmitVoiceEvent {
     [self availableAudioDevices];
 
     NSMutableArray *nativeAudioDeviceInfos = [NSMutableArray array];
@@ -190,6 +241,58 @@ static TVODefaultAudioDevice *sTwilioAudioDevice;
     }
 
     [self sendEventWithName:kTwilioVoiceReactNativeScopeVoice body:eventBody];
+}
+
+- (void)scheduleCoalescedRouteRefresh {
+    [self cancelRouteRefreshCoalesce];
+
+    __weak TwilioVoiceReactNative *weakSelf = self;
+    dispatch_block_t block = dispatch_block_create(0, ^{
+        TwilioVoiceReactNative *strongSelf = weakSelf;
+        if (!strongSelf) {
+            return;
+        }
+
+        strongSelf.routeRefreshCoalesceBlock = nil;
+
+        // The call can end inside the coalesce window — re-check before the XPC read.
+        if (!sTwilioAudioDevice.enabled || strongSelf.callMap.count == 0) {
+            return;
+        }
+
+        [strongSelf refreshAudioDevicesAndEmitVoiceEvent];
+    });
+    self.routeRefreshCoalesceBlock = block;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.05 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(),
+                   block);
+}
+
+- (void)handleRouteChange:(NSNotification *)notification {
+    // startRouteChangeObserver already seeds devices when CallKit activates audio.
+    // CategoryChange is the activation notification — handling it again duplicates
+    // synchronous AVAudioSession XPC on the main thread (Sentry App Hang cluster).
+    NSNumber *reasonValue = notification.userInfo[AVAudioSessionRouteChangeReasonKey];
+    if (reasonValue.unsignedIntegerValue == AVAudioSessionRouteChangeReasonCategoryChange) {
+        return;
+    }
+
+    // AVAudioSession posts this on its own queue, not necessarily the main one. Gate and
+    // coalesce on the main queue so callMap and routeRefreshCoalesceBlock have a single
+    // owning queue — stopRouteChangeObserver cancels from the CallKit delegates there.
+    dispatch_async(dispatch_get_main_queue(), ^{
+        // A replacement module can take the observer before this block runs.
+        // stopRouteChangeObserver cancels a pending coalesce, not this queued block.
+        if (sRouteObserverModule != self) {
+            return;
+        }
+
+        if (!sTwilioAudioDevice.enabled || self.callMap.count == 0) {
+            return;
+        }
+
+        [self scheduleCoalescedRouteRefresh];
+    });
 }
 
 /**
@@ -229,8 +332,6 @@ static TVODefaultAudioDevice *sTwilioAudioDevice;
                                       kTwilioVoiceReactNativeAudioDeviceKeyName: @"Speaker",
                                       kTwilioVoiceAudioDeviceUid: AVAudioSessionPortBuiltInSpeaker};
     self.audioDevices[speakerUuid] = builtInSpeaker;
-
-    [self availableAudioDevices];
 }
 
 - (NSDictionary *)availableAudioDevices {
@@ -731,15 +832,24 @@ RCT_EXPORT_METHOD(voice_getCallInvites:(RCTPromiseResolveBlock)resolver
 RCT_EXPORT_METHOD(voice_getAudioDevices:(RCTPromiseResolveBlock)resolver
                   rejecter:(RCTPromiseRejectBlock)rejecter)
 {
-    NSMutableArray *nativeAudioDeviceInfos = [NSMutableArray array];
-    for (NSString *key in [self.audioDevices allKeys]) {
-        [nativeAudioDeviceInfos addObject:self.audioDevices[key]];
-    }
-    NSDictionary *payload = @{
-        kTwilioVoiceReactNativeAudioDeviceKeyAudioDevices: nativeAudioDeviceInfos,
-        kTwilioVoiceReactNativeAudioDeviceKeySelectedDevice: self.selectedAudioDevice
-    };
-    [self resolvePromise:resolver value:payload];
+    // Route seeding in startRouteChangeObserver mutates audioDevices on the main
+    // queue. Snapshot there so ringing/connect do not enumerate mid-mutation.
+    dispatch_async(dispatch_get_main_queue(), ^{
+        NSMutableArray *nativeAudioDeviceInfos = [NSMutableArray array];
+        for (NSString *key in [self.audioDevices allKeys]) {
+            [nativeAudioDeviceInfos addObject:self.audioDevices[key]];
+        }
+
+        // Nil selectedAudioDevice (before the in-call route read) cannot go in a
+        // dictionary literal — that throws NSInvalidArgumentException.
+        NSMutableDictionary *info = [@{
+            kTwilioVoiceReactNativeAudioDeviceKeyAudioDevices: nativeAudioDeviceInfos
+        } mutableCopy];
+        if (self.selectedAudioDevice != nil) {
+            info[kTwilioVoiceReactNativeAudioDeviceKeySelectedDevice] = self.selectedAudioDevice;
+        }
+        [self resolvePromise:resolver value:info];
+    });
 }
 
 // This does not update `selectedAudioDevice`. The selection is recomputed from
@@ -807,6 +917,32 @@ RCT_EXPORT_METHOD(voice_setIncomingCallContactHandleTemplate:(NSString *)templat
     [preferences setObject:template forKey:preferenceKey];
     [preferences synchronize];
     [self resolvePromise:resolver value:[NSNull null]];
+}
+
+// Push whether CallKit may unmute for a live call (defaults to YES when unset).
+// Optional statusName updates CXCallUpdate.localizedCallerName on the CallKit screen.
+// Resolves raw (not the SDK promise envelope): app code calls this on NativeModules directly.
+RCT_EXPORT_METHOD(voice_setCallKitCanSpeak:(NSString *)uuid
+                  canSpeak:(BOOL)canSpeak
+                  statusName:(NSString *)statusName
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+{
+    if (!uuid || uuid.length == 0) {
+        reject(kTwilioVoiceReactNativeVoiceError, @"Call uuid is required", nil);
+        return;
+    }
+
+    dispatch_async(dispatch_get_main_queue(), ^{
+        NSString *callUuid = uuid.uppercaseString;
+        self.callCanSpeakMap[callUuid] = @(canSpeak);
+
+        if (statusName != nil && statusName.length > 0) {
+            [self updateCall:callUuid callerHandle:statusName];
+        }
+
+        resolve(nil);
+    });
 }
 
 #pragma mark - Bindings (Call)
@@ -910,9 +1046,25 @@ RCT_EXPORT_METHOD(call_mute:(NSString *)uuid
 {
     TVOCall *call = [self getCallFromMap:uuid resolver:resolver];
     if (!call) return;
-    
-    [call setMuted:muted];
-    [self resolvePromise:resolver value:@(call.isMuted)];
+
+    if (!self.callKitCallController) {
+        [call setMuted:muted];
+        [self resolvePromise:resolver value:@(call.isMuted)];
+        return;
+    }
+
+    [self requestCallKitMute:muted forUuid:uuid completion:^(NSError *error) {
+        TVOCall *liveCall = self.callMap[uuid];
+        if (error && liveCall) {
+            // CallKit transaction failed (e.g. start still in flight) — still apply the track mute.
+            [liveCall setMuted:muted];
+            [self sendEventWithName:kTwilioVoiceReactNativeScopeCall
+                               body:@{kTwilioVoiceReactNativeVoiceEventType: kTwilioVoiceReactNativeCallEventMutedChanged,
+                                      kTwilioVoiceReactNativeEventKeyCall: [self callInfo:liveCall]}];
+        }
+        BOOL isMuted = liveCall ? liveCall.isMuted : muted;
+        [self resolvePromise:resolver value:@(isMuted)];
+    }];
 }
 
 RCT_EXPORT_METHOD(call_isMuted:(NSString *)uuid

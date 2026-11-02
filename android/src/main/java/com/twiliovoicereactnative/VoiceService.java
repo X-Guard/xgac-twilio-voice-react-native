@@ -224,7 +224,7 @@ public class VoiceService extends Service {
 
 
     // play ringer sound
-    VoiceApplicationProxy.getAudioSwitchManager().getAudioSwitch().activate();
+    VoiceApplicationProxy.getAudioSwitchManager().activate();
     VoiceApplicationProxy.getMediaPlayerManager().play(MediaPlayerManager.SoundTable.INCOMING);
 
     // trigger JS layer
@@ -245,7 +245,8 @@ public class VoiceService extends Service {
 
       // stop ringer sound
       VoiceApplicationProxy.getMediaPlayerManager().stop();
-      VoiceApplicationProxy.getAudioSwitchManager().getAudioSwitch().deactivate();
+      VoiceApplicationProxy.getAudioSwitchManager().deactivate();
+      VoiceApplicationProxy.getAudioSwitchManager().stop();
 
       // report an error to JS layer
       sendPermissionsError();
@@ -307,7 +308,9 @@ public class VoiceService extends Service {
 
     // stop ringer sound
     VoiceApplicationProxy.getMediaPlayerManager().stop();
-    VoiceApplicationProxy.getAudioSwitchManager().getAudioSwitch().deactivate();
+    VoiceApplicationProxy.getAudioSwitchManager().deactivate();
+    // Invite teardown has no JS device restore — stop listening for A2DP media.
+    VoiceApplicationProxy.getAudioSwitchManager().stop();
 
     // reject call
     callRecord.getCallInvite().reject(VoiceService.this);
@@ -334,7 +337,9 @@ public class VoiceService extends Service {
 
     // stop ringer sound
     VoiceApplicationProxy.getMediaPlayerManager().stop();
-    VoiceApplicationProxy.getAudioSwitchManager().getAudioSwitch().deactivate();
+    VoiceApplicationProxy.getAudioSwitchManager().deactivate();
+    // Invite teardown has no JS device restore — stop listening for A2DP media.
+    VoiceApplicationProxy.getAudioSwitchManager().stop();
 
     // notify JS layer
     sendJSEvent(

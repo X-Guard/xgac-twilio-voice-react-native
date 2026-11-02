@@ -56,6 +56,7 @@ describe('Call class', () => {
         Constants.CallEventReconnected,
         Constants.CallEventReconnecting,
         Constants.CallEventRinging,
+        Constants.CallEventMutedChanged,
         Constants.CallEventQualityWarningsChanged,
         Constants.CallEventMessageReceived,
       ].forEach((event: string) => {
@@ -179,6 +180,11 @@ describe('Call class', () => {
       expect(callMessage).toBeInstanceOf(IncomingCallMessage);
     };
 
+    const listenerCalledWithMuted = (listenerMock: jest.Mock) => {
+      expect(listenerMock).toHaveBeenCalledTimes(1);
+      expect(listenerMock).toHaveBeenNthCalledWith(1, true);
+    };
+
     (
       [
         // Example test case configuration:
@@ -221,6 +227,11 @@ describe('Call class', () => {
           mockCallNativeEvents.ringing,
           Call.Event.Ringing,
           listenerCalledWithoutArgs,
+        ],
+        [
+          mockCallNativeEvents.mutedChanged,
+          Call.Event.Muted,
+          listenerCalledWithMuted,
         ],
         [
           mockCallNativeEvents.qualityWarningsChanged,
@@ -425,6 +436,13 @@ describe('Call class', () => {
         const call = new Call(nativeInfo);
         const date = call.getInitialConnectedTimestamp();
         expect(date).toBeUndefined();
+      });
+    });
+
+    describe('.getUuid', () => {
+      it('returns the uuid value', () => {
+        const uuid = new Call(createNativeCallInfo()).getUuid();
+        expect(uuid).toBe('mock-nativecallinfo-uuid');
       });
     });
 
@@ -727,6 +745,7 @@ describe('Call class', () => {
       '_handleReconnectingEvent',
       '_handleReconnectedEvent',
       '_handleRingingEvent',
+      '_handleMutedEvent',
       '_handleQualityWarningsChangedEvent',
       '_handleMessageReceivedEvent',
     ].forEach((privateMethodKey) => {

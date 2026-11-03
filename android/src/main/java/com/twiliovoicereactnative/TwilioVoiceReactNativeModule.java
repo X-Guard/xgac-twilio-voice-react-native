@@ -471,8 +471,11 @@ public class TwilioVoiceReactNativeModule extends ReactContextBaseJavaModule {
    */
   @ReactMethod
   public void voice_activateAudioSwitch(Promise promise) {
-    VoiceApplicationProxy.getAudioSwitchManager().activate();
-    promise.resolve(null);
+    // Bridge methods run off main. Call teardown uses AudioSwitch on main.
+    mainHandler.post(() -> {
+      VoiceApplicationProxy.getAudioSwitchManager().activate();
+      promise.resolve(null);
+    });
   }
 
   /**
@@ -481,8 +484,10 @@ public class TwilioVoiceReactNativeModule extends ReactContextBaseJavaModule {
    */
   @ReactMethod
   public void voice_stopAudioSwitch(Promise promise) {
-    VoiceApplicationProxy.getAudioSwitchManager().stop();
-    promise.resolve(null);
+    mainHandler.post(() -> {
+      VoiceApplicationProxy.getAudioSwitchManager().stop();
+      promise.resolve(null);
+    });
   }
 
   /**

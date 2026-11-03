@@ -55,6 +55,9 @@ class CallListenerProxy implements Call.Listener {
     // stop sound and routing
     getMediaPlayerManager().stop();
     getAudioSwitchManager().deactivate();
+    // Ringing already started AudioSwitch. Stop before the JS event so SCO
+    // does not keep scanning until ConnectFailure crosses the bridge.
+    getAudioSwitchManager().stop();
 
     // find call record & remove
     CallRecord callRecord = Objects.requireNonNull(getCallRecordDatabase().remove(new CallRecord(uuid)));

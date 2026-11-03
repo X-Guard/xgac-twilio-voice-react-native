@@ -373,23 +373,31 @@ NSString * const kDefaultCallKitConfigurationName = @"Twilio Voice React Native"
 
     CXSetMutedCallAction *muteAction = [[CXSetMutedCallAction alloc] initWithCallUUID:callUUID muted:muted];
     NSString *actionId = muteAction.UUID.UUIDString;
-    // Registered before requesting so performSetMutedCallAction can recognise this action as ours.
-    self.jsMuteCompletions[actionId] = completion ?: ^(NSError *ignored) {};
-    CXTransaction *transaction = [[CXTransaction alloc] initWithAction:muteAction];
-    [self.callKitCallController requestTransaction:transaction completion:^(NSError *error) {
-        if (error) {
-            [self completeJsMuteAction:actionId error:error];
-            return;
-        }
+    void (^storedCompletion)(NSError *error) = completion ?: ^(NSError *ignored) {};
 
-        // Success here only means CallKit accepted the transaction; the mute is applied later in
-        // performSetMutedCallAction, which completes this action with the real track state. The
-        // watchdog guarantees JS is never left awaiting if that delegate callback never arrives.
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)),
-                       dispatch_get_main_queue(), ^{
-            [self completeJsMuteAction:actionId error:nil];
-        });
-    }];
+    // call_mute runs on the RN bridge queue. The provider delegate (queue:nil → main)
+    // and the watchdog both read this dictionary. PTT mute/unmute overlap those.
+    dispatch_async(dispatch_get_main_queue(), ^{
+        // Registered before requesting so performSetMutedCallAction can recognise this action as ours.
+        self.jsMuteCompletions[actionId] = storedCompletion;
+        CXTransaction *transaction = [[CXTransaction alloc] initWithAction:muteAction];
+        [self.callKitCallController requestTransaction:transaction completion:^(NSError *error) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (error) {
+                    [self completeJsMuteAction:actionId error:error];
+                    return;
+                }
+
+                // Success here only means CallKit accepted the transaction; the mute is applied later in
+                // performSetMutedCallAction, which completes this action with the real track state. The
+                // watchdog guarantees JS is never left awaiting if that delegate callback never arrives.
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)),
+                               dispatch_get_main_queue(), ^{
+                    [self completeJsMuteAction:actionId error:nil];
+                });
+            });
+        }];
+    });
 }
 
 #pragma mark - CXProviderDelegate

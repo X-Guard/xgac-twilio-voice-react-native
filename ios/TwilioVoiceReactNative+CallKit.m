@@ -41,8 +41,10 @@ NSString * const kDefaultCallKitConfigurationName = @"Twilio Voice React Native"
     }
 
     float version = [[UIDevice currentDevice].systemVersion floatValue];
-    if (version > 11.0 && configuration[kTwilioVoiceReactNativeCallKitIncludesCallsInRecents]) {
-        callKitConfiguration.includesCallsInRecents = [configuration[kTwilioVoiceReactNativeCallKitIncludesCallsInRecents] boolValue];
+    if (version > 11.0) {
+        // Default NO so helper/alarm calls do not land in Phone Recents.
+        NSNumber *includesRecents = configuration[kTwilioVoiceReactNativeCallKitIncludesCallsInRecents];
+        callKitConfiguration.includesCallsInRecents = includesRecents != nil ? includesRecents.boolValue : NO;
     }
 
     if (configuration[kTwilioVoiceReactNativeCallKitSupportedHandleTypes]) {
@@ -97,8 +99,8 @@ NSString * const kDefaultCallKitConfigurationName = @"Twilio Voice React Native"
     CXCallUpdate *callUpdate = [[CXCallUpdate alloc] init];
     callUpdate.remoteHandle = callHandle;
     callUpdate.localizedCallerName = handleName;
-    callUpdate.supportsDTMF = YES;
-    callUpdate.supportsHolding = YES;
+    callUpdate.supportsDTMF = NO;
+    callUpdate.supportsHolding = NO;
     callUpdate.supportsGrouping = NO;
     callUpdate.supportsUngrouping = NO;
     callUpdate.hasVideo = NO;
@@ -232,8 +234,8 @@ NSString * const kDefaultCallKitConfigurationName = @"Twilio Voice React Native"
             CXCallUpdate *callUpdate = [[CXCallUpdate alloc] init];
 
             callUpdate.remoteHandle = callHandle;
-            callUpdate.supportsDTMF = YES;
-            callUpdate.supportsHolding = YES;
+            callUpdate.supportsDTMF = NO;
+            callUpdate.supportsHolding = NO;
             callUpdate.supportsGrouping = NO;
             callUpdate.supportsUngrouping = NO;
             callUpdate.hasVideo = NO;
@@ -324,8 +326,8 @@ NSString * const kDefaultCallKitConfigurationName = @"Twilio Voice React Native"
     CXCallUpdate *callUpdate = [[CXCallUpdate alloc] init];
     callUpdate.remoteHandle = callHandle;
     callUpdate.localizedCallerName = handle;
-    callUpdate.supportsDTMF = YES;
-    callUpdate.supportsHolding = YES;
+    callUpdate.supportsDTMF = NO;
+    callUpdate.supportsHolding = NO;
     callUpdate.supportsGrouping = NO;
     callUpdate.supportsUngrouping = NO;
     callUpdate.hasVideo = NO;
@@ -335,10 +337,74 @@ NSString * const kDefaultCallKitConfigurationName = @"Twilio Voice React Native"
     });
 }
 
+// Resolves a pending JS `call_mute` completion once, whichever path gets there first
+// (mute applied, transaction rejected, or the watchdog).
+- (void)completeJsMuteAction:(NSString *)actionId error:(NSError *)error {
+    void (^completion)(NSError *error) = self.jsMuteCompletions[actionId];
+    if (!completion) {
+        return;
+    }
+
+    [self.jsMuteCompletions removeObjectForKey:actionId];
+    completion(error);
+}
+
+- (void)requestCallKitMute:(BOOL)muted
+                   forUuid:(NSString *)uuid
+                completion:(void(^)(NSError *error))completion {
+    if (!self.callKitCallController || uuid.length == 0) {
+        if (completion) {
+            completion([NSError errorWithDomain:@"TwilioVoiceReactNative"
+                                           code:0
+                                       userInfo:@{NSLocalizedDescriptionKey: @"CallKit mute is unavailable"}]);
+        }
+        return;
+    }
+
+    NSUUID *callUUID = [[NSUUID alloc] initWithUUIDString:uuid];
+    if (!callUUID) {
+        if (completion) {
+            completion([NSError errorWithDomain:@"TwilioVoiceReactNative"
+                                           code:0
+                                       userInfo:@{NSLocalizedDescriptionKey: @"Invalid call uuid"}]);
+        }
+        return;
+    }
+
+    CXSetMutedCallAction *muteAction = [[CXSetMutedCallAction alloc] initWithCallUUID:callUUID muted:muted];
+    NSString *actionId = muteAction.UUID.UUIDString;
+    void (^storedCompletion)(NSError *error) = completion ?: ^(NSError *ignored) {};
+
+    // call_mute runs on the RN bridge queue. The provider delegate (queue:nil → main)
+    // and the watchdog both read this dictionary. PTT mute/unmute overlap those.
+    dispatch_async(dispatch_get_main_queue(), ^{
+        // Registered before requesting so performSetMutedCallAction can recognise this action as ours.
+        self.jsMuteCompletions[actionId] = storedCompletion;
+        CXTransaction *transaction = [[CXTransaction alloc] initWithAction:muteAction];
+        [self.callKitCallController requestTransaction:transaction completion:^(NSError *error) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (error) {
+                    [self completeJsMuteAction:actionId error:error];
+                    return;
+                }
+
+                // Success here only means CallKit accepted the transaction; the mute is applied later in
+                // performSetMutedCallAction, which completes this action with the real track state. The
+                // watchdog guarantees JS is never left awaiting if that delegate callback never arrives.
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)),
+                               dispatch_get_main_queue(), ^{
+                    [self completeJsMuteAction:actionId error:nil];
+                });
+            });
+        }];
+    });
+}
+
 #pragma mark - CXProviderDelegate
 
 - (void)providerDidReset:(CXProvider *)provider {
     [TwilioVoiceReactNative twilioAudioDevice].enabled = NO;
+    [self stopRouteChangeObserver];
 }
 
 - (void)providerDidBegin:(CXProvider *)provider {
@@ -346,14 +412,25 @@ NSString * const kDefaultCallKitConfigurationName = @"Twilio Voice React Native"
 }
 
 - (void)provider:(CXProvider *)provider didActivateAudioSession:(AVAudioSession *)audioSession {
+    // Fast hangup clears callMap and can skip didDeactivateAudioSession
+    // (voice-quickstart-ios#525). A late activate must not re-enable the device
+    // or read the route on the main thread.
+    if (self.callMap.count == 0) {
+        return;
+    }
+
     [TwilioVoiceReactNative twilioAudioDevice].enabled = YES;
+    [self startRouteChangeObserver];
 }
 
 - (void)provider:(CXProvider *)provider didDeactivateAudioSession:(AVAudioSession *)audioSession {
     [TwilioVoiceReactNative twilioAudioDevice].enabled = NO;
+    [self stopRouteChangeObserver];
 }
 
 - (void)provider:(CXProvider *)provider performEndCallAction:(CXEndCallAction *)action {
+    // CallKit already ended this call (system UI or JS CXEndCallAction) — do not report ended again.
+    self.userInitiatedDisconnect = YES;
     if (self.callMap[action.callUUID.UUIDString]) {
         TVOCall *call = self.callMap[action.callUUID.UUIDString];
         [call disconnect];
@@ -417,12 +494,39 @@ NSString * const kDefaultCallKitConfigurationName = @"Twilio Voice React Native"
 }
 
 - (void)provider:(CXProvider *)provider performSetMutedCallAction:(CXSetMutedCallAction *)action {
+    NSString *actionId = action.UUID.UUIDString;
     if (self.callMap[action.callUUID.UUIDString]) {
         TVOCall *call = self.callMap[action.callUUID.UUIDString];
+        NSString *uuid = action.callUUID.UUIDString.uppercaseString;
+        // Missing cache entry defaults to YES so panic / unset paths keep stock behaviour.
+        NSNumber *canSpeakNumber = self.callCanSpeakMap[uuid];
+        BOOL canSpeak = canSpeakNumber == nil ? YES : canSpeakNumber.boolValue;
+
+        BOOL fromJs = self.jsMuteCompletions[actionId] != nil;
+
+        if (!fromJs && !action.isMuted && !canSpeak) {
+            // Refuse lock-screen unmute while gated. Do not enqueue a remute
+            // transaction — CallKit only runs one at a time, so remute races
+            // the user's next mute/unmute and looks like inverted controls.
+            [call setMuted:YES];
+            [action fail];
+            return;
+        }
+
         [call setMuted:action.isMuted];
+        // Stock SDK mutes but never notifies JS (twilio-voice-react-native#610).
+        [self sendEventWithName:kTwilioVoiceReactNativeScopeCall
+                           body:@{kTwilioVoiceReactNativeVoiceEventType: kTwilioVoiceReactNativeCallEventMutedChanged,
+                                  kTwilioVoiceReactNativeEventKeyCall: [self callInfo:call]}];
         [action fulfill];
+        // After the event so JS consumes its own echo before `call.mute()` resolves.
+        [self completeJsMuteAction:actionId error:nil];
     } else {
         [action fail];
+        [self completeJsMuteAction:actionId
+                             error:[NSError errorWithDomain:@"TwilioVoiceReactNative"
+                                                       code:0
+                                                   userInfo:@{NSLocalizedDescriptionKey: @"Call not found for mute action"}]];
     }
 }
 
@@ -509,6 +613,7 @@ NSString * const kDefaultCallKitConfigurationName = @"Twilio Voice React Native"
         if (activeCall == call) {
             [self.callMap removeObjectForKey:uuidKey];
             [self.callConnectMap removeObjectForKey:call.uuid.UUIDString];
+            [self.callCanSpeakMap removeObjectForKey:uuidKey.uppercaseString];
             break;
         }
     }
@@ -518,6 +623,12 @@ NSString * const kDefaultCallKitConfigurationName = @"Twilio Voice React Native"
 
     [self stopRingback];
     self.userInitiatedDisconnect = NO;
+
+    if (self.callMap.count == 0) {
+        // didDeactivateAudioSession can be skipped on fast hangup (voice-quickstart-ios#525).
+        [TwilioVoiceReactNative twilioAudioDevice].enabled = NO;
+        [self stopRouteChangeObserver];
+    }
 }
 
 - (void)call:(TVOCall *)call isReconnectingWithError:(NSError *)error {

@@ -34,10 +34,7 @@ public class VoiceActivityProxy {
   }
   public void onCreate(Bundle ignoredSavedInstanceState) {
     logger.debug("onCreate(): invoked");
-    // Ensure the microphone permission is enabled
-    if (!checkPermissions()) {
-      requestPermissions();
-    }
+
     // These flags ensure that the activity can be launched when the screen is locked.
     Window window = context.getWindow();
     window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
@@ -77,14 +74,32 @@ public class VoiceActivityProxy {
   }
   private void handleIntent(Intent intent) {
     String action = intent.getAction();
-    if ((null != action) && (!action.equals(Constants.ACTION_PUSH_APP_TO_FOREGROUND))) {
-      // Accept is an activity PendingIntent, so forwarding is its only path to VoiceService. The
-      // copy constructor preserves extras (including the notification id); setFlags(0) resets flags only.
-      Intent copiedIntent = new Intent(intent);
-      copiedIntent.setClass(context.getApplicationContext(), VoiceService.class);
-      copiedIntent.setFlags(0);
-      context.getApplicationContext().startService(copiedIntent);
+    // Launcher / deep-link intents (ACTION_MAIN, ACTION_VIEW) must not start VoiceService.
+    // Android 12+ throws BackgroundServiceStartNotAllowedException from MainActivity.onCreate
+    // (XGAC-RN-ALARM-14X). Accept is an activity PendingIntent, so forwarding is its only path
+    // to VoiceService. The copy constructor preserves extras (including the notification id);
+    // setFlags(0) resets flags only.
+    if (!isVoiceNotificationAction(action)) {
+      return;
     }
+    Intent copiedIntent = new Intent(intent);
+    copiedIntent.setClass(context.getApplicationContext(), VoiceService.class);
+    copiedIntent.setFlags(0);
+    context.getApplicationContext().startService(copiedIntent);
+  }
+
+  private static boolean isVoiceNotificationAction(final String action) {
+    if (null == action || action.equals(Constants.ACTION_PUSH_APP_TO_FOREGROUND)) {
+      return false;
+    }
+    return action.equals(Constants.ACTION_ACCEPT_CALL)
+      || action.equals(Constants.ACTION_REJECT_CALL)
+      || action.equals(Constants.ACTION_CANCEL_ACTIVE_CALL_NOTIFICATION)
+      || action.equals(Constants.ACTION_INCOMING_CALL)
+      || action.equals(Constants.ACTION_CANCEL_CALL)
+      || action.equals(Constants.ACTION_CALL_DISCONNECT)
+      || action.equals(Constants.ACTION_RAISE_OUTGOING_CALL_NOTIFICATION)
+      || action.equals(Constants.ACTION_FOREGROUND_AND_DEPRIORITIZE_INCOMING_CALL_NOTIFICATION);
   }
 
   static {

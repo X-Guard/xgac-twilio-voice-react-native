@@ -77,6 +77,16 @@ export const mockCallNativeEvents = {
       call: createNativeCallInfo(),
     },
   },
+  mutedChanged: {
+    name: Constants.CallEventMutedChanged,
+    nativeEvent: {
+      type: Constants.CallEventMutedChanged,
+      call: {
+        ...createNativeCallInfo(),
+        isMuted: true,
+      },
+    },
+  },
   qualityWarningsChanged: {
     name: Constants.CallEventQualityWarningsChanged,
     nativeEvent: {

@@ -54,7 +54,10 @@ class CallListenerProxy implements Call.Listener {
 
     // stop sound and routing
     getMediaPlayerManager().stop();
-    getAudioSwitchManager().getAudioSwitch().deactivate();
+    getAudioSwitchManager().deactivate();
+    // Ringing already started AudioSwitch. Stop before the JS event so SCO
+    // does not keep scanning until ConnectFailure crosses the bridge.
+    getAudioSwitchManager().stop();
 
     // find call record & remove
     CallRecord callRecord = Objects.requireNonNull(getCallRecordDatabase().remove(new CallRecord(uuid)));
@@ -80,8 +83,7 @@ class CallListenerProxy implements Call.Listener {
 
     // create notification & sound
     callRecord.setNotificationId(NotificationUtility.createNotificationIdentifier());
-    getAudioSwitchManager().getAudioSwitch().activate();
-    getMediaPlayerManager().play(MediaPlayerManager.SoundTable.RINGTONE);
+    getAudioSwitchManager().activate();
     getVoiceServiceApi().raiseOutgoingCallNotification(callRecord);
 
     // notify JS layer
@@ -100,6 +102,10 @@ class CallListenerProxy implements Call.Listener {
     callRecord.setCall(call);
     callRecord.setTimestamp(new Date());
     getMediaPlayerManager().stop();
+
+    // Ringing is not guaranteed — ensure AudioSwitch is started+activated so
+    // JS device sync / speaker select and call routing still work.
+    getAudioSwitchManager().activate();
 
     // notify JS layer
     sendJSEvent(
@@ -146,8 +152,11 @@ class CallListenerProxy implements Call.Listener {
 
     // stop audio & cancel notification
     getMediaPlayerManager().stop();
-    getMediaPlayerManager().play(MediaPlayerManager.SoundTable.DISCONNECT);
-    getAudioSwitchManager().getAudioSwitch().deactivate();
+    getAudioSwitchManager().deactivate();
+    // Always stop here: accepted incoming calls have no JS CallInvite/reset path.
+    // System route is restored by deactivate(); JS may update preference via cached
+    // select without start() (starting again would blip A2DP).
+    getAudioSwitchManager().stop();
     getVoiceServiceApi().cancelActiveCallNotification(callRecord);
 
     // notify JS layer

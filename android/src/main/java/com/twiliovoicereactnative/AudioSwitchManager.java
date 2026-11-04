@@ -131,6 +131,11 @@ class AudioSwitchManager {
    * as long as the device is present.
    */
   private final HashMap<String, String> audioDeviceUuids = new HashMap<>();
+  /**
+   * Whether AudioSwitch.start() is currently active. Kept false at app start so Bluetooth
+   * headset scanning / SCO does not interrupt A2DP media until a call needs audio.
+   */
+  private boolean started = false;
 
   /**
    * Constructor for the AudioSwitchManager class. Intended to be a singleton.
@@ -141,7 +146,11 @@ class AudioSwitchManager {
     audioSwitch = new AudioSwitch(context);
   }
 
-  public void start() {
+  public synchronized void start() {
+    if (started) {
+      return;
+    }
+
     audioSwitch.start((devices, selectedDevice) -> {
       updateAudioDevices(devices, selectedDevice);
 
@@ -150,6 +159,7 @@ class AudioSwitchManager {
       }
       return Unit.INSTANCE;
     });
+    started = true;
   }
 
   /**
@@ -205,8 +215,34 @@ class AudioSwitchManager {
     }
   }
 
-  public void stop() {
+  public synchronized void stop() {
+    if (!started) {
+      return;
+    }
+
     audioSwitch.stop();
+    started = false;
+  }
+
+  /**
+   * Start listening (if needed) and activate call audio routing / focus.
+   * Mirrors iOS enabling TVODefaultAudioDevice only when CallKit activates the session.
+   */
+  public synchronized void activate() {
+    start();
+    audioSwitch.activate();
+  }
+
+  /**
+   * Restore prior audio state. Does not stop listening — JS may still call
+   * selectDevice (resetAudioDevice) after hangup; the app stops afterwards.
+   */
+  public synchronized void deactivate() {
+    if (!started) {
+      return;
+    }
+
+    audioSwitch.deactivate();
   }
 
   /**

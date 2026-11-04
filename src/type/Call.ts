@@ -49,6 +49,11 @@ export interface NativeCallRingingEvent {
   call: NativeCallInfo;
 }
 
+export interface NativeCallMutedChangedEvent {
+  type: Constants.CallEventMutedChanged;
+  call: NativeCallInfo;
+}
+
 export type NativeCallQualityWarnings = string[];
 
 export interface NativeCallQualityWarningsEvent {
@@ -71,6 +76,7 @@ export type NativeCallEvent =
   | NativeCallReconnectedEvent
   | NativeCallDisconnectedEvent
   | NativeCallRingingEvent
+  | NativeCallMutedChangedEvent
   | NativeCallQualityWarningsEvent
   | NativeCallMessageReceivedEvent;
 
@@ -82,6 +88,7 @@ export type NativeCallEventType =
   | Constants.CallEventReconnected
   | Constants.CallEventReconnecting
   | Constants.CallEventRinging
+  | Constants.CallEventMutedChanged
   | Constants.CallEventMessageReceived;
 
 export type NativeCallFeedbackIssue =

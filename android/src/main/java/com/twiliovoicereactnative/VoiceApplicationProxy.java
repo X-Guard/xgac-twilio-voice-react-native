@@ -78,10 +78,11 @@ public class VoiceApplicationProxy {
       new Intent(context, VoiceService.class),
       voiceServiceObserver,
       Context.BIND_AUTO_CREATE);
-    // Activate audio engine
+    // Construct audio helpers, but do not start AudioSwitch yet — starting scans
+    // Bluetooth headset / SCO and can interrupt A2DP media when the app opens.
+    // AudioSwitchManager.activate() starts it lazily when a call needs audio.
     audioSwitchManager = new AudioSwitchManager(context);
     mediaPlayerManager = new MediaPlayerManager(context);
-    audioSwitchManager.start();
   }
   /**
    * Record the host application's Expo SDK version from the manifest meta-data

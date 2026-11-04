@@ -115,6 +115,12 @@ export interface TwilioVoiceReactNative extends NativeModulesStatic {
   voice_setIncomingCallContactHandleTemplate(
     template?: string
   ): NativePromise<void>;
+  // Raw bridge promise. App code calls NativeModules directly and does not settle the envelope.
+  voice_setCallKitCanSpeak(
+    callUuid: Uuid,
+    canSpeak: boolean,
+    statusName: string | null
+  ): Promise<void>;
   voice_getAudioDevices(): NativePromise<NativeAudioDevicesInfo>;
   voice_getCalls(): NativePromise<NativeCallInfo[]>;
   voice_getCallInvites(): NativePromise<NativeCallInviteInfo[]>;

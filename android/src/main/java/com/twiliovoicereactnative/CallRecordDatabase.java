@@ -95,6 +95,9 @@ class CallRecordDatabase  {
     public final String getNotificationDisplayName() {
       return this.notificationDisplayName;
     }
+    public void setNotificationDisplayName(String notificationDisplayName) {
+      this.notificationDisplayName = notificationDisplayName;
+    }
     public final Direction getDirection() {
       return this.direction;
     }

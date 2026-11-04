@@ -82,6 +82,9 @@ export declare interface Call {
     incomingCallMessage: IncomingCallMessage
   ): boolean;
 
+  /** @internal */
+  emit(mutedEvent: Call.Event.Muted, isMuted: boolean): boolean;
+
   /**
    * ----------------
    * Listener Typings
@@ -317,6 +320,21 @@ export declare interface Call {
   ): this;
 
   /**
+   * Muted event. Raised when mute state changes from CallKit (patched).
+   *
+   * @param mutedEvent - The raised event string.
+   * @param listener - A listener function that will be invoked when the event
+   * is raised.
+   * @returns - The call object.
+   */
+  addListener(
+    mutedEvent: Call.Event.Muted,
+    listener: Call.Listener.Muted
+  ): this;
+  /** {@inheritDoc (Call:interface).(addListener:9)} */
+  on(mutedEvent: Call.Event.Muted, listener: Call.Listener.Muted): this;
+
+  /**
    * Generic event listener typings.
    * @param callEvent - The raised event string.
    * @param listener - A listener function that will be invoked when the event
@@ -325,7 +343,7 @@ export declare interface Call {
    */
   addListener(callEvent: Call.Event, listener: Call.Listener.Generic): this;
   /**
-   * {@inheritDoc (Call:interface).(addListener:9)}
+   * {@inheritDoc (Call:interface).(addListener:10)}
    */
   on(callEvent: Call.Event, listener: Call.Listener.Generic): this;
 }
@@ -458,6 +476,7 @@ export class Call extends EventEmitter {
       [Constants.CallEventReconnected]: this._handleReconnectedEvent,
       [Constants.CallEventReconnecting]: this._handleReconnectingEvent,
       [Constants.CallEventRinging]: this._handleRingingEvent,
+      [Constants.CallEventMutedChanged]: this._handleMutedEvent,
 
       /**
        * Call Quality
@@ -635,6 +654,23 @@ export class Call extends EventEmitter {
   };
 
   /**
+   * Handler for the {@link (Call:namespace).Event.Muted} event.
+   * @param nativeCallEvent - The native call event.
+   */
+  private _handleMutedEvent = (nativeCallEvent: NativeCallEvent) => {
+    if (nativeCallEvent.type !== Constants.CallEventMutedChanged) {
+      throw new Error(
+        'Incorrect "call#muted" handler called for type ' +
+          `"${nativeCallEvent.type}".`
+      );
+    }
+
+    this._update(nativeCallEvent);
+    this._isMuted = nativeCallEvent.call.isMuted;
+    this.emit(Call.Event.Muted, Boolean(this._isMuted));
+  };
+
+  /**
    * Handler for the the {@link (Call:namespace).Event.QualityWarningsChanged}
    * event.
    * @param nativeCallEvent - The native call event.
@@ -744,6 +780,13 @@ export class Call extends EventEmitter {
    */
   getInitialConnectedTimestamp(): Date | undefined {
     return this._initialConnectedTimestamp;
+  }
+
+  /**
+   * Get the `Uuid` of this call used between the JS and native layers.
+   */
+  getUuid(): Uuid {
+    return this._uuid;
   }
 
   /**
@@ -1032,6 +1075,12 @@ export namespace Call {
      * See {@link (Call:interface).(addListener:8)}
      */
     'MessageReceived' = 'messageReceived',
+
+    /**
+     * Event string for the `Muted` event (CallKit mute — patched).
+     * See {@link (Call:interface).(addListener:9)}.
+     */
+    'Muted' = 'muted',
   }
 
   /**
@@ -1278,11 +1327,19 @@ export namespace Call {
     ) => void;
 
     /**
+     * Muted event listener. Raised when CallKit changes mute state (patched).
+     *
+     * @remarks
+     * See {@link (Call:interface).(addListener:9)}.
+     */
+    export type Muted = (isMuted: boolean) => void;
+
+    /**
      * Generic event listener. This should be the function signature of any
      * event listener bound to any call event.
      *
      * @remarks
-     * See {@link (Call:interface).(addListener:9)}.
+     * See {@link (Call:interface).(addListener:10)}.
      */
     export type Generic = (...args: any[]) => void;
   }

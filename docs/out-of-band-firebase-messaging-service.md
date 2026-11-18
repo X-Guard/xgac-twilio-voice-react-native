@@ -1,8 +1,8 @@
 The functionality detailed in this document was added in `1.2.1` of the
-`@twilio/voice-react-native-sdk`.
+`@x-guard/xgac-twilio-voice-react-native`.
 
 # Using an out-of-band Firebase Messaging service
-The `@twilio/voice-react-native-sdk` includes a built-in Firebase Messaging
+The `@x-guard/xgac-twilio-voice-react-native` includes a built-in Firebase Messaging
 service to allow users to register and listen for incoming calls. However, it
 is common that other libraries will have the same requirement of listening for
 Firebase messages. Due to restrictions placed by Android, only one service per
@@ -32,7 +32,7 @@ Firebase messages can now be passed into the Voice SDK from any other source.
 
 The following API has been implemented to facilitate this:
 ```ts
-import { Voice } from '@twilio/voice-react-native-sdk';
+import { Voice } from '@x-guard/xgac-twilio-voice-react-native';
 const voice = new Voice();
 
 const remoteMessage = ...; // this remote message should be provided by a common firebase message service that is separate from the Twilio Voice RN SDK
@@ -51,7 +51,7 @@ be used in further examples in this document.
 // preferably in your index.js/index.ts file
 // or, as early as possible in your application
 import messaging from '@react-native-firebase/messaging';
-import { Voice } from '@twilio/voice-react-native-sdk';
+import { Voice } from '@x-guard/xgac-twilio-voice-react-native';
 
 const voice = new Voice();
 

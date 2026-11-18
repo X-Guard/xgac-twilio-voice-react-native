@@ -2422,22 +2422,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@twilio/voice-react-native-sdk@portal:../../::locator=twiliovoiceexpoexample%40workspace%3A.":
-  version: 0.0.0-use.local
-  resolution: "@twilio/voice-react-native-sdk@portal:../../::locator=twiliovoiceexpoexample%40workspace%3A."
-  dependencies:
-    "@twilio/voice-errors": "npm:1.8.0"
-    eventemitter3: "npm:^4.0.7"
-  peerDependencies:
-    expo: "*"
-    react: "*"
-    react-native: "*"
-  peerDependenciesMeta:
-    expo:
-      optional: true
-  languageName: node
-  linkType: soft
-
 "@types/babel__core@npm:^7.1.14":
   version: 7.20.5
   resolution: "@types/babel__core@npm:7.20.5"
@@ -2677,6 +2661,22 @@ __metadata:
   checksum: 10c0/210b1834ce628cfacdc7417ed8596455045bd6c87bc4ef01b99558ddeeab00648d8ed73abdd212f7cb3d96110b0d36bf8812fd31e1d61a4d3b8f7cad41ab69bf
   languageName: node
   linkType: hard
+
+"@x-guard/xgac-twilio-voice-react-native@portal:../../::locator=twiliovoiceexpoexample%40workspace%3A.":
+  version: 0.0.0-use.local
+  resolution: "@x-guard/xgac-twilio-voice-react-native@portal:../../::locator=twiliovoiceexpoexample%40workspace%3A."
+  dependencies:
+    "@twilio/voice-errors": "npm:1.8.0"
+    eventemitter3: "npm:^4.0.7"
+  peerDependencies:
+    expo: "*"
+    react: "*"
+    react-native: "*"
+  peerDependenciesMeta:
+    expo:
+      optional: true
+  languageName: node
+  linkType: soft
 
 "@xmldom/xmldom@npm:^0.8.8":
   version: 0.8.11
@@ -10205,10 +10205,10 @@ __metadata:
     "@expo/vector-icons": "npm:~14.0.4"
     "@react-navigation/bottom-tabs": "npm:^7.2.0"
     "@react-navigation/native": "npm:^7.0.14"
-    "@twilio/voice-react-native-sdk": "portal:../../"
     "@types/jest": "npm:^29.5.12"
     "@types/react": "npm:~18.3.12"
     "@types/react-test-renderer": "npm:^18.3.0"
+    "@x-guard/xgac-twilio-voice-react-native": "portal:../../"
     detox: "npm:^20.46.3"
     expo: "npm:~52.0.47"
     expo-blur: "npm:~14.0.3"

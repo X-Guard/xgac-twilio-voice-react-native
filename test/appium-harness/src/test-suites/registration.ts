@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { TwilioErrors, Voice } from '@twilio/voice-react-native-sdk';
+import { TwilioErrors, Voice } from '@x-guard/xgac-twilio-voice-react-native';
 import type { UseTestSuite } from '../test-suites';
 import { delay } from '../utilities/delay';
 import { expect } from '../utilities/expect';

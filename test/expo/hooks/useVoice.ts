@@ -10,7 +10,7 @@ import {
   PreflightTest,
   Voice,
   TwilioErrors,
-} from '@twilio/voice-react-native-sdk';
+} from '@x-guard/xgac-twilio-voice-react-native';
 
 export interface BoundCallMethod {
   disconnect: () => void;

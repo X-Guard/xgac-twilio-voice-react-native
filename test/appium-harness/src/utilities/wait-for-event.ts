@@ -1,4 +1,4 @@
-import type { Call, Voice } from '@twilio/voice-react-native-sdk';
+import type { Call, Voice } from '@x-guard/xgac-twilio-voice-react-native';
 
 /**
  * Event-race helpers shared by the test suites.

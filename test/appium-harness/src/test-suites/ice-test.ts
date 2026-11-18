@@ -4,7 +4,7 @@ import {
   IceTransportPolicy,
   TwilioErrors,
   Voice,
-} from '@twilio/voice-react-native-sdk';
+} from '@x-guard/xgac-twilio-voice-react-native';
 import type { useLogging } from '../hooks/useLogging';
 import { UseTestSuite } from '../test-suites';
 import { delay } from '../utilities/delay';

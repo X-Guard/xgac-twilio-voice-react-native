@@ -29,7 +29,7 @@ const sharedWithHarness = [
   'react',
   'react-native',
   'react-native-safe-area-context',
-  '@twilio/voice-react-native-sdk',
+  '@x-guard/xgac-twilio-voice-react-native',
 ];
 
 /**

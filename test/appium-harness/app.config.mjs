@@ -22,7 +22,7 @@ const config = {
       googleServicesFile: './google-services.json',
     },
     plugins: [
-      '@twilio/voice-react-native-sdk',
+      '@x-guard/xgac-twilio-voice-react-native',
       'expo-router',
     ],
     experiments: {

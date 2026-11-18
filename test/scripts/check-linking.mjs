@@ -19,7 +19,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const PACKAGE_NAME = '@twilio/voice-react-native-sdk';
+const PACKAGE_NAME = '@x-guard/xgac-twilio-voice-react-native';
 
 const failures = [];
 const check = (name, fn) => {

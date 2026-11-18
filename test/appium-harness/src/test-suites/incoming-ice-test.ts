@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Platform } from 'react-native';
-import { Call, CallInvite, IceTransportPolicy, Voice } from '@twilio/voice-react-native-sdk';
+import { Call, CallInvite, IceTransportPolicy, Voice } from '@x-guard/xgac-twilio-voice-react-native';
 import type { useLogging } from '../hooks/useLogging';
 import type { UseTestSuite } from '../test-suites';
 import { delay } from '../utilities/delay';

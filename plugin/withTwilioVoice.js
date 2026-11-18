@@ -658,7 +658,7 @@ function withVoiceEntitlements(config, { apsEnvironment }) {
         '',
         'or as a plugin prop:',
         '',
-        `    ["@twilio/voice-react-native-sdk", { "apsEnvironment": "production" }]`,
+        `    ["@x-guard/xgac-twilio-voice-react-native", { "apsEnvironment": "production" }]`,
       ].join('\n')
     );
     return cfg;

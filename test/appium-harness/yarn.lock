@@ -2521,22 +2521,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@twilio/voice-react-native-sdk@portal:../../::locator=twilio-voice-react-native-sdk-appium-harness%40workspace%3A.":
-  version: 0.0.0-use.local
-  resolution: "@twilio/voice-react-native-sdk@portal:../../::locator=twilio-voice-react-native-sdk-appium-harness%40workspace%3A."
-  dependencies:
-    "@twilio/voice-errors": "npm:1.8.0"
-    eventemitter3: "npm:^4.0.7"
-  peerDependencies:
-    expo: "*"
-    react: "*"
-    react-native: "*"
-  peerDependenciesMeta:
-    expo:
-      optional: true
-  languageName: node
-  linkType: soft
-
 "@types/babel__core@npm:^7.1.14":
   version: 7.20.5
   resolution: "@types/babel__core@npm:7.20.5"
@@ -2666,6 +2650,22 @@ __metadata:
   checksum: 10c0/0fc3097c2540ada1fc340ee56d58d96b5b536a2a0dab6e3ec17d4bfc8c4c86db345f61a375a8185f9da96f01c69678f836a2b57eeaa9e4b8eeafd26428e57b0a
   languageName: node
   linkType: hard
+
+"@x-guard/xgac-twilio-voice-react-native@portal:../../::locator=twilio-voice-react-native-sdk-appium-harness%40workspace%3A.":
+  version: 0.0.0-use.local
+  resolution: "@x-guard/xgac-twilio-voice-react-native@portal:../../::locator=twilio-voice-react-native-sdk-appium-harness%40workspace%3A."
+  dependencies:
+    "@twilio/voice-errors": "npm:1.8.0"
+    eventemitter3: "npm:^4.0.7"
+  peerDependencies:
+    expo: "*"
+    react: "*"
+    react-native: "*"
+  peerDependenciesMeta:
+    expo:
+      optional: true
+  languageName: node
+  linkType: soft
 
 "@xmldom/xmldom@npm:^0.8.8":
   version: 0.8.13
@@ -6682,8 +6682,8 @@ __metadata:
     "@react-navigation/bottom-tabs": "npm:^7.15.5"
     "@react-navigation/elements": "npm:^2.9.10"
     "@react-navigation/native": "npm:^7.1.33"
-    "@twilio/voice-react-native-sdk": "portal:../../"
     "@types/react": "npm:~19.2.2"
+    "@x-guard/xgac-twilio-voice-react-native": "portal:../../"
     expo: "npm:~55.0.17"
     expo-constants: "npm:~55.0.15"
     expo-device: "npm:~55.0.15"

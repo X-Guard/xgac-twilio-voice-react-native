@@ -26,7 +26,7 @@ will build and run, but cannot place or receive a call without them.
 ### 1. Install
 
 ```sh
-npx expo install @twilio/voice-react-native-sdk
+npx expo install @x-guard/xgac-twilio-voice-react-native
 ```
 
 ### 2. Add the plugin
@@ -36,7 +36,7 @@ In `app.json` or `app.config.js`:
 ```json
 {
   "expo": {
-    "plugins": ["@twilio/voice-react-native-sdk"]
+    "plugins": ["@x-guard/xgac-twilio-voice-react-native"]
   }
 }
 ```
@@ -104,7 +104,7 @@ app that builds, installs and then does not ring:
   "expo": {
     "plugins": [
       [
-        "@twilio/voice-react-native-sdk",
+        "@x-guard/xgac-twilio-voice-react-native",
         {
           "apsEnvironment": "production",
           "microphoneUsageDescription": "Acme uses your microphone for calls."

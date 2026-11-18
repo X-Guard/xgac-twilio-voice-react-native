@@ -3,8 +3,8 @@ import {
   Call,
   OutgoingCallMessage,
   TwilioErrors,
-} from '@twilio/voice-react-native-sdk';
-import type { CallMessage } from '@twilio/voice-react-native-sdk';
+} from '@x-guard/xgac-twilio-voice-react-native';
+import type { CallMessage } from '@x-guard/xgac-twilio-voice-react-native';
 import type { UseTestSuite } from '../test-suites';
 import { expect } from '../utilities/expect';
 import {

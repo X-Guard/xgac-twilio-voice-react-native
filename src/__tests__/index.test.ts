@@ -21,7 +21,7 @@ import { RTCStats } from '../type/RTCStats';
 describe('public entry point', () => {
   /**
    * Exports that carry a runtime value: classes, enums and namespaces.
-   * Mirrors `api/voice-react-native-sdk.api.md`; update both together.
+   * Mirrors `api/xgac-twilio-voice-react-native.api.md`; update both together.
    */
   const RUNTIME_EXPORTS = [
     'AudioCodecType',

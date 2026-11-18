@@ -267,6 +267,7 @@ export namespace Call {
     }
     export enum QualityWarning {
         'ConstantAudioInputLevel' = "constant-audio-input-level",
+        'ConstantAudioOutputLevel' = "constant-audio-output-level",
         'HighJitter' = "high-jitter",
         'HighPacketLoss' = "high-packet-loss",
         'HighRtt' = "high-rtt",

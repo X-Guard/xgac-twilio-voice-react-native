@@ -1405,11 +1405,6 @@ RCT_EXPORT_METHOD(cancelledCallInvite_getTo:(NSString *)uuid
 }
 
 - (NSString *)warningNameWithNumber:(NSNumber *)warning {
-    if ([warning intValue] < 0 || [warning intValue] > 4) {
-        NSLog(@"Warning number out of TVOCallQualityWarning range");
-        return @"undefined";
-    }
-    
     TVOCallQualityWarning warningValue = [warning intValue];
     switch (warningValue) {
         case TVOCallQualityWarningHighRtt:
@@ -1417,12 +1412,15 @@ RCT_EXPORT_METHOD(cancelledCallInvite_getTo:(NSString *)uuid
         case TVOCallQualityWarningHighJitter:
             return @"high-jitter";
         case TVOCallQualityWarningHighPacketsLostFraction:
-            return @"high-packets-lost-fraction";
+            return @"high-packet-loss";
         case TVOCallQualityWarningLowMos:
             return @"low-mos";
         case TVOCallQualityWarningConstantAudioInputLevel:
             return @"constant-audio-input-level";
+        case TVOCallQualityWarningConstantAudioOutputLevel:
+            return @"constant-audio-output-level";
         default:
+            NSLog(@"Warning number out of TVOCallQualityWarning range: %@", warning);
             return @"undefined";
     }
 }

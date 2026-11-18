@@ -1,6 +1,6 @@
 {
   "name": "@x-guard/xgac-twilio-voice-react-native",
-  "version": "1.0.0-dev0",
+  "version": "1.0.0-dev1",
   "description": "X-Guard Twilio Voice React Native SDK",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",

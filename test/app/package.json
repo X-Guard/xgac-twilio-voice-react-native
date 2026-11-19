@@ -13,7 +13,7 @@
     "detox:relay-server": "node ./e2e/relay/server.js"
   },
   "dependencies": {
-    "@twilio/voice-react-native-sdk": "link:../../",
+    "@x-guard/xgac-twilio-voice-react-native": "link:../../",
     "react": "19.2.0",
     "react-native": "0.83.6",
     "react-native-safe-area-context": "~5.6.2"

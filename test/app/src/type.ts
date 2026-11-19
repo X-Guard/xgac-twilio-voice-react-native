@@ -1,4 +1,4 @@
-import type { Call, CallMessage } from '@twilio/voice-react-native-sdk';
+import type { Call, CallMessage } from '@x-guard/xgac-twilio-voice-react-native';
 
 export interface BoundCallMethod {
   disconnect: () => void;

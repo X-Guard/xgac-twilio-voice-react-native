@@ -5,7 +5,7 @@ import {
   CallKit,
   TwilioErrors,
   Voice,
-} from '@twilio/voice-react-native-sdk';
+} from '@x-guard/xgac-twilio-voice-react-native';
 import type { UseTestSuite } from '../test-suites';
 import { delay } from '../utilities/delay';
 import { expect } from '../utilities/expect';

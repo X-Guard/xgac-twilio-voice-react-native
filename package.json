@@ -1,7 +1,7 @@
 {
-  "name": "@twilio/voice-react-native-sdk",
-  "version": "1.8.2-dev",
-  "description": "Twilio Voice React Native SDK",
+  "name": "@x-guard/xgac-twilio-voice-react-native",
+  "version": "1.8.1-xgac.0",
+  "description": "X-Guard Twilio Voice React Native SDK",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
   "types": "lib/typescript/index.d.ts",
@@ -40,22 +40,30 @@
     "prepare": "yarn run build:constants && bob build",
     "test": "jest",
     "check:type:apps": "yarn --cwd test/expo tsc --noEmit && yarn --cwd test/appium-harness tsc --noEmit",
-    "check:linking": "node ./test/scripts/check-linking.mjs"
+    "check:linking": "node ./test/scripts/check-linking.mjs",
+    "dist": "rm -rf dist && node ./scripts/substitute-constants-version.js \"$(node -p 'require(\"./package.json\").version')\" && yarn prepare && node scripts/dist.mjs",
+    "dist:dev": "rm -rf dist && node ./scripts/substitute-constants-version.js \"$(node -p 'require(\"./package.json\").version')\" && yarn prepare && node scripts/dist.mjs --dev",
+    "dist:publish": "yarn dist && (cd dist && npm publish)",
+    "dist:pack": "yarn dist && (cd dist && npm pack)",
+    "prepack": "echo \"Cannot run standard pack & publish scripts. Use the publish and pack scripts instead\" && exit 1"
   },
   "keywords": [
     "react-native",
     "ios",
     "android"
   ],
-  "repository": "https://github.com/twilio/twilio-voice-react-native",
-  "author": "Michael Huynh <mhuynh@twilio.com> (https://github.com/twilio)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/X-Guard/xgac-twilio-voice-react-native.git"
+  },
+  "author": "XGManuelJager",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/twilio/twilio-voice-react-native/issues"
+    "url": "https://github.com/X-Guard/xgac-twilio-voice-react-native/issues"
   },
-  "homepage": "https://github.com/twilio/twilio-voice-react-native#readme",
+  "homepage": "https://github.com/X-Guard/xgac-twilio-voice-react-native#readme",
   "publishConfig": {
-    "registry": "https://registry.npmjs.org/"
+    "registry": "https://npm.pkg.github.com/"
   },
   "devDependencies": {
     "@babel/core": "7.23.7",
@@ -153,6 +161,7 @@
   "eslintIgnore": [
     "node_modules/",
     "lib/",
+    "dist/",
     "test/app/",
     "test/expo/",
     "test/appium-harness/",

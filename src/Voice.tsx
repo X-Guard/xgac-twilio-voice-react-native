@@ -918,7 +918,7 @@ export class Voice extends EventEmitter {
    *   IceTransportPolicy,
    *   PreflightTest,
    *   Voice,
-   * } from '@twilio/voice-react-native-sdk';
+   * } from '@x-guard/xgac-twilio-voice-react-native';
    *
    * const voice = new Voice();
    *

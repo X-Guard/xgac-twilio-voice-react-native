@@ -163,7 +163,7 @@ The following example demonstrates how to make and receive calls. You will need 
 For more information on the Voice React Native SDK API, refer to the [API Docs](https://github.com/twilio/twilio-voice-react-native/blob/latest/docs/api/voice-react-native-sdk.md) or see our [Reference App](https://github.com/twilio/twilio-voice-react-native-app).
 
 ```ts
-import { Voice } from '@twilio/voice-react-native-sdk';
+import { Voice } from '@x-guard/xgac-twilio-voice-react-native';
 
 const token = getAccessToken(); // you will need to implement this method for your use case
 

@@ -1150,6 +1150,10 @@ export namespace Call {
      */
     'ConstantAudioInputLevel' = 'constant-audio-input-level',
     /**
+     * Raised when the call detects constant audio output, such as silence.
+     */
+    'ConstantAudioOutputLevel' = 'constant-audio-output-level',
+    /**
      * Raised when the network encounters high jitter.
      */
     'HighJitter' = 'high-jitter',

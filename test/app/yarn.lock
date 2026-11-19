@@ -2900,12 +2900,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@twilio/voice-react-native-sdk@link:../../::locator=TwilioVoiceReactNativeExample%40workspace%3A.":
-  version: 0.0.0-use.local
-  resolution: "@twilio/voice-react-native-sdk@link:../../::locator=TwilioVoiceReactNativeExample%40workspace%3A."
-  languageName: node
-  linkType: soft
-
 "@types/babel__core@npm:^7.1.14":
   version: 7.20.5
   resolution: "@types/babel__core@npm:7.20.5"
@@ -3256,6 +3250,12 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@x-guard/xgac-twilio-voice-react-native@link:../../::locator=TwilioVoiceReactNativeExample%40workspace%3A.":
+  version: 0.0.0-use.local
+  resolution: "@x-guard/xgac-twilio-voice-react-native@link:../../::locator=TwilioVoiceReactNativeExample%40workspace%3A."
+  languageName: node
+  linkType: soft
+
 "TwilioVoiceReactNativeExample@workspace:.":
   version: 0.0.0-use.local
   resolution: "TwilioVoiceReactNativeExample@workspace:."
@@ -3270,10 +3270,10 @@ __metadata:
     "@react-native/eslint-config": "npm:0.83.6"
     "@react-native/metro-config": "npm:0.83.6"
     "@react-native/typescript-config": "npm:0.83.6"
-    "@twilio/voice-react-native-sdk": "link:../../"
     "@types/jest": "npm:^29.5.13"
     "@types/react": "npm:^19.1.1"
     "@types/react-test-renderer": "npm:^18.0.0"
+    "@x-guard/xgac-twilio-voice-react-native": "link:../../"
     detox: "npm:^20.36.1"
     eslint: "npm:^8.19.0"
     jest: "npm:^29.6.3"

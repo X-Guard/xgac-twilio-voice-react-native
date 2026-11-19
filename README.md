@@ -1,7 +1,6 @@
-# Twilio Voice React Native SDK
-[![NPM](https://img.shields.io/npm/v/%40twilio/voice-react-native-sdk.svg?color=blue)](https://www.npmjs.com/package/%40twilio/voice-react-native-sdk) [![CI](https://github.com/twilio/twilio-voice-react-native/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/twilio/twilio-voice-react-native/actions/workflows/ci.yml)
+# X-Guard Twilio Voice React Native SDK
 
-Twilio's Voice React Native SDK allows you to add real-time voice and PSTN calling to your React Native apps.
+X-Guard's fork of Twilio's Voice React Native SDK. It adds real-time voice and PSTN calling to React Native apps.
 
 - [Documentation](https://www.twilio.com/docs/voice/sdks/react-native)
 - [API Reference](https://github.com/twilio/twilio-voice-react-native/blob/latest/docs/api/voice-react-native-sdk.md)
@@ -13,17 +12,17 @@ Please check out the following if you are new to Twilio's Programmable Voice or 
 - [React Native](https://reactnative.dev/docs/getting-started)
 
 ## Installation
-The package is available through [npm](https://www.npmjs.com/package/@twilio/voice-react-native-sdk).
+The package is published to GitHub Packages. Point the `@x-guard` scope at `https://npm.pkg.github.com/` and install:
 
 ```sh
-yarn add @twilio/voice-react-native-sdk
+yarn add @x-guard/xgac-twilio-voice-react-native
 ```
 
 If you are using Expo, install with `npx expo install` instead, so the version is resolved against
 your Expo SDK.
 
 ```sh
-npx expo install @twilio/voice-react-native-sdk
+npx expo install @x-guard/xgac-twilio-voice-react-native
 ```
 
 Once the package has been installed to your React Native application, there are further steps that you will need to take for both iOS and Android platforms. Please see the supporting documentation below.

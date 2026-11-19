@@ -29,7 +29,7 @@ module.exports = {
       favicon: './assets/images/favicon.png',
     },
     plugins: [
-      '@twilio/voice-react-native-sdk',
+      '@x-guard/xgac-twilio-voice-react-native',
       'expo-router',
       [
         'expo-splash-screen',

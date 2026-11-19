@@ -29,7 +29,7 @@ if (typeof nativeModule === 'undefined') {
   throw new InvalidStateError(
     [
       'The TwilioVoiceReactNative native module could not be found. The',
-      'JavaScript for @twilio/voice-react-native-sdk loaded but its native code',
+      'JavaScript for @x-guard/xgac-twilio-voice-react-native loaded but its native code',
       'did not. Common causes:',
       '',
       '  - The application was not rebuilt after adding this dependency.',

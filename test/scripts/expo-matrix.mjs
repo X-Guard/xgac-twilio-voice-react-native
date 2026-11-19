@@ -93,7 +93,7 @@ function configure() {
   step('configure');
   const pkgPath = join(appDir, 'package.json');
   const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
-  pkg.dependencies['@twilio/voice-react-native-sdk'] = `file:${tarball}`;
+  pkg.dependencies['@x-guard/xgac-twilio-voice-react-native'] = `file:${tarball}`;
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 
   // A google-services.json is required because the SDK's Android manifest pulls
@@ -137,7 +137,7 @@ function configure() {
   };
   appJson.expo.plugins = [
     ...(appJson.expo.plugins || []),
-    '@twilio/voice-react-native-sdk',
+    '@x-guard/xgac-twilio-voice-react-native',
   ];
   writeFileSync(appJsonPath, JSON.stringify(appJson, null, 2));
 }

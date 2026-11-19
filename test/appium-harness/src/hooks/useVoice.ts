@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Voice } from '@twilio/voice-react-native-sdk';
+import { Voice } from '@x-guard/xgac-twilio-voice-react-native';
 import { type useLogging } from './useLogging';
 
 export function useVoice(logging: ReturnType<typeof useLogging>) {

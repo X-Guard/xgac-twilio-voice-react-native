@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Call } from '@twilio/voice-react-native-sdk';
+import { Call } from '@x-guard/xgac-twilio-voice-react-native';
 import type { UseTestSuite } from '../test-suites';
 import { expect } from '../utilities/expect';
 import {
@@ -49,18 +49,14 @@ const WARNING_TIMEOUT_MS = 45_000;
 const DISCONNECT_TIMEOUT_MS = 15_000;
 
 /**
- * Taken from the enum, not written as a literal, so re-valuing
- * `Call.QualityWarning` carries this assertion with it.
- *
- * Input-level only, deliberately. Both native SDKs also raise
- * `constant-audio-output-level`, which the enum has no member for and which the
- * iOS wrapper turns into the literal string `"undefined"`. Accepting either
- * value would let this step pass on a platform that cannot name what it raised.
- *
- * TODO: VBLOCKS-7113 - add a `ConstantAudioOutputLevel` member and map it in
- * the iOS wrapper, then expect either warning here.
+ * Taken from the enum, not written as literals, so re-valuing
+ * `Call.QualityWarning` carries this assertion with it. Constant audio can
+ * raise either level warning, so either one counts.
  */
-const EXPECTED_WARNING: string = Call.QualityWarning.ConstantAudioInputLevel;
+const EXPECTED_WARNINGS: string[] = [
+  Call.QualityWarning.ConstantAudioInputLevel,
+  Call.QualityWarning.ConstantAudioOutputLevel,
+];
 
 /**
  * Every value `Call.QualityWarning` declares.
@@ -149,17 +145,17 @@ const STEPS: Array<Step<Context>> = [
     name: 'constant-audio-warning-observed',
     description:
       'the raised warnings include Call.QualityWarning.ConstantAudioInputLevel ' +
-      'by its declared value. The output-level warning is not accepted as a ' +
-      'substitute - see the note on EXPECTED_WARNING',
+      'or Call.QualityWarning.ConstantAudioOutputLevel by its declared value',
     run: async ({ events }, log) => {
       const observed = observedWarnings(events);
 
-      log.info(JSON.stringify({ observed, expected: EXPECTED_WARNING }));
+      log.info(JSON.stringify({ observed, expected: EXPECTED_WARNINGS }));
 
       expect(
-        observed,
-        `the observed warnings (${observed.join(', ') || 'nothing'})`,
-      ).toContain(EXPECTED_WARNING);
+        observed.some((warning) => EXPECTED_WARNINGS.includes(warning)),
+        `the observed warnings (${observed.join(', ') || 'nothing'}) include ` +
+          `one of ${EXPECTED_WARNINGS.join(', ')}`,
+      ).toBe(true);
     },
   },
   {
@@ -177,11 +173,6 @@ const STEPS: Array<Step<Context>> = [
       ).toHaveLength(0);
     },
   },
-  // KNOWN FAILING on both platforms whenever an output-level warning is
-  // observed, which the constant audio makes the common case: the enum has no
-  // member for it, so Android's `constant-audio-output-level` and iOS's
-  // `"undefined"` both land in `unknown`. Clears with the fix noted on
-  // EXPECTED_WARNING. TODO: VBLOCKS-7113
   {
     name: 'warning-values-are-known',
     description:
@@ -201,8 +192,7 @@ const STEPS: Array<Step<Context>> = [
       }));
 
       // A value native raises that the enum cannot name is unmatchable by any
-      // consumer. `constant-audio-output-level` on Android and the literal
-      // string `"undefined"` on iOS both land here.
+      // consumer.
       expect(
         unknown,
         'warning values native raised that Call.QualityWarning does not ' +
